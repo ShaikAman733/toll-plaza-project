@@ -10,6 +10,7 @@ import com.tollfinder.model.TollResponse;
 import com.tollfinder.model.TollResponse.RouteInfo;
 import com.tollfinder.model.TollResponse.TollPlazaInfo;
 import com.tollfinder.repository.TollPlazaRepository;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -32,6 +33,8 @@ public class TollPlazaService {
         this.matchProperties = matchProperties;
     }
 
+    // one entry per direction: A to B and B to A are different routes
+    @Cacheable(cacheNames = "tollRoutes", key = "#sourcePincode + '-' + #destinationPincode")
     public TollResponse findTollPlazas(String sourcePincode, String destinationPincode) {
         if (sourcePincode.equals(destinationPincode)) {
             throw new SamePincodeException();
