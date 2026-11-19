@@ -39,3 +39,6 @@ nominatim:
 
 springdoc:
   swagger-ui.path: /swagger-ui.html
+
+keep-alive:
+  url: ${RENDER_EXTERNAL_URL:}   # set automatically by Render; empty means no keep-alive pings

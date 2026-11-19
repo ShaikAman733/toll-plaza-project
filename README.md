@@ -104,7 +104,12 @@ See `.env.example` for placeholders.
 
 The bare URL `/` redirects to Swagger, and `GET /health` returns `{"status":"UP"}` to check the service is awake.
 
-The Render free tier **sleeps after about 15 minutes idle**, so the first request after a pause can take 30-60 seconds
+On Render the app pings its own `/health` every 10 minutes (it uses the `RENDER_EXTERNAL_URL` variable Render sets
+automatically), which keeps the free instance from going idle. This uses about 744 of the 750 free instance hours per
+month, so it suits one free service per account. `/health` does not touch the database, so Neon may still pause its
+own compute; the first real request after a pause takes about a second longer.
+
+The Render free tier **sleeps after about 15 minutes idle**, so without the keep-alive above, the first request after a pause can take 30-60 seconds
 while the app starts and reloads the CSV (a quick upsert). The in-memory cache is also empty after a wake-up.
 
 ## How it works
