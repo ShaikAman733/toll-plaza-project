@@ -88,8 +88,13 @@ public class TollMatcher {
     }
 
     private boolean isSamePlaza(TollMatch kept, TollMatch other) {
-        boolean sameName = kept.plaza().getName().trim().equalsIgnoreCase(other.plaza().getName().trim());
+        boolean sameName = normalise(kept.plaza().getName()).equals(normalise(other.plaza().getName()));
         boolean close = other.distanceFromSourceMeters() - kept.distanceFromSourceMeters() <= props.mergeDistanceMeters();
         return sameName && close;
+    }
+
+    // "Khed-Shivapur" and "Khedshivapur" are the same plaza: ignore case, spaces and punctuation
+    private String normalise(String name) {
+        return name.toLowerCase().replaceAll("[^a-z0-9]", "");
     }
 }

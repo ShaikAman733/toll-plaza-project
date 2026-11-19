@@ -117,6 +117,15 @@ class TollMatcherTest {
     }
 
     @Test
+    void namesThatDifferOnlyByPunctuationAreTheSamePlaza() {
+        // real case from the data: "Khed-Shivapur" and "Khedshivapur" about a metre apart
+        List<TollMatch> matches = matcher.match(eastRoute, List.of(
+                plaza("Khed-Shivapur Toll Plaza", 12.0, 77.2500), plaza("Khedshivapur Toll Plaza", 12.0, 77.2501)));
+
+        assertThat(matches).hasSize(1);
+    }
+
+    @Test
     void noCandidatesOrEmptyRouteGivesEmptyList() {
         assertThat(matcher.match(eastRoute, List.of())).isEmpty();
         assertThat(matcher.match(new RouteGeometry(List.of(new Coordinate(12, 77)), 0),
