@@ -126,6 +126,37 @@ class TollMatcherTest {
     }
 
     @Test
+    void longRouteWithThousandsOfPointsIsMatchedAllTheWayToTheEnd() {
+        // roughly Bengaluru to Pune: about 850 km as 6000 points, with a plaza every 10% of the way
+        Coordinate start = new Coordinate(13.14, 77.57);
+        Coordinate end = new Coordinate(18.57, 73.78);
+        List<Coordinate> points = new java.util.ArrayList<>();
+        for (int i = 0; i <= 6000; i++) {
+            points.add(interpolate(start, end, i / 6000.0));
+        }
+        RouteGeometry route = new RouteGeometry(points, 850_000);
+        List<TollPlaza> plazas = new java.util.ArrayList<>();
+        for (int tenth = 1; tenth <= 9; tenth++) {
+            Coordinate on = interpolate(start, end, tenth / 10.0);
+            plazas.add(plaza("Plaza " + tenth, on.latitude() + 0.0005, on.longitude()));
+        }
+
+        List<TollMatch> matches = matcher.match(route, plazas);
+
+        assertThat(matches).hasSize(9);
+        assertThat(matches).extracting(m -> m.plaza().getName())
+                .containsExactly("Plaza 1", "Plaza 2", "Plaza 3", "Plaza 4", "Plaza 5", "Plaza 6", "Plaza 7", "Plaza 8", "Plaza 9");
+        double routeLength = GeoMath.haversineMeters(start, end);
+        // the last plaza sits 90% of the way along, so its distance must not have been cut short or reset
+        assertThat(matches.get(8).distanceFromSourceMeters()).isCloseTo(0.9 * routeLength, offset(routeLength * 0.01));
+    }
+
+    private Coordinate interpolate(Coordinate a, Coordinate b, double fraction) {
+        return new Coordinate(a.latitude() + (b.latitude() - a.latitude()) * fraction,
+                a.longitude() + (b.longitude() - a.longitude()) * fraction);
+    }
+
+    @Test
     void noCandidatesOrEmptyRouteGivesEmptyList() {
         assertThat(matcher.match(eastRoute, List.of())).isEmpty();
         assertThat(matcher.match(new RouteGeometry(List.of(new Coordinate(12, 77)), 0),

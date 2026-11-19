@@ -10,6 +10,8 @@ import com.tollfinder.model.TollResponse;
 import com.tollfinder.model.TollResponse.RouteInfo;
 import com.tollfinder.model.TollResponse.TollPlazaInfo;
 import com.tollfinder.repository.TollPlazaRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -17,6 +19,8 @@ import java.util.List;
 
 @Service
 public class TollPlazaService {
+
+    private static final Logger log = LoggerFactory.getLogger(TollPlazaService.class);
 
     private final PincodeLocator locator;
     private final RoutingClient routingClient;
@@ -46,7 +50,12 @@ public class TollPlazaService {
         BoundingBox box = BoundingBox.around(route.points(), matchProperties.toleranceMeters());
         List<TollPlaza> candidates = repository.findByLatitudeBetweenAndLongitudeBetween(
                 box.minLat(), box.maxLat(), box.minLon(), box.maxLon());
-        List<TollPlazaInfo> plazas = matcher.match(route, candidates).stream()
+        List<TollMatch> matches = matcher.match(route, candidates);
+        List<Coordinate> points = route.points();
+        log.info("Route {}->{}: {} points, first {}, last {}, box {}, {} candidates, {} matched",
+                sourcePincode, destinationPincode, points.size(), points.get(0), points.get(points.size() - 1),
+                box, candidates.size(), matches.size());
+        List<TollPlazaInfo> plazas = matches.stream()
                 .map(m -> new TollPlazaInfo(m.plaza().getName(), m.plaza().getLatitude(), m.plaza().getLongitude(),
                         toKm(m.distanceFromSourceMeters())))
                 .toList();
