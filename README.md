@@ -1,60 +1,120 @@
 # Toll Plaza Finder
 
-A Spring Boot REST API. Give it a source and a destination Indian pincode and it returns the toll plazas on the
-driving route between them: name, latitude, longitude and the distance from the source along the route.
+Toll Plaza Finder is a Spring Boot REST API that helps you find toll plazas along a driving route between two Indian pincodes.
 
-- Java 17, Spring Boot 3.5, Maven
-- Routing from [OpenRouteService](https://openrouteservice.org) (ORS), geocoding of pincodes from OpenStreetMap Nominatim (or ORS, see below)
-- Toll plazas loaded from a CSV into a database (H2 locally, Postgres when deployed)
-- Responses cached with Caffeine
-- Swagger UI at `/swagger-ui.html`
+Simply provide a source and destination pincode, and the API calculates the driving route, identifies toll plazas along the way, and returns their names, coordinates, and distance from the starting point.
 
-## The endpoint
+## Tech Stack
 
-`POST /api/v1/toll-plazas`
+- Java 17 and Spring Boot 3.5
+- Maven
+- OpenRouteService (ORS) for route calculation
+- OpenStreetMap Nominatim for pincode geocoding
+- H2 for local development and PostgreSQL for production
+- Caffeine for caching API responses
+- Swagger UI for API documentation
 
-```json
-{ "sourcePincode": "560064", "destinationPincode": "411045" }
-```
+## API Endpoint
 
-Success (distances are in km):
+**`POST /api/v1/toll-plazas`**
+
+Send the source and destination pincodes in the request body:
 
 ```json
 {
-  "route": { "sourcePincode": "560064", "destinationPincode": "411045", "distanceInKm": 842.31 },
+  "sourcePincode": "560064",
+  "destinationPincode": "411045"
+}
+```
+
+### Sample Response
+
+The API returns the total route distance along with the toll plazas found on the route.
+
+```json
+{
+  "route": {
+    "sourcePincode": "560064",
+    "destinationPincode": "411045",
+    "distanceInKm": 842.31
+  },
   "tollPlazas": [
-    { "name": "Kaggalipura Toll Plaza", "latitude": 12.7425, "longitude": 77.4528, "distanceFromSource": 31.52 }
+    {
+      "name": "Kaggalipura Toll Plaza",
+      "latitude": 12.7425,
+      "longitude": 77.4528,
+      "distanceFromSource": 31.52
+    }
   ]
 }
 ```
 
-(The plaza values above are illustrative.) A route with no plazas is a normal `200` with `"tollPlazas": []`.
+*The toll plaza details above are illustrative and not actual API results.*
 
-| Case | Status | Body |
-|---|---|---|
-| Pincode is not 6 digits, or cannot be found | 400 | `{"error": "Invalid source or destination pincode"}` |
-| Same source and destination | 400 | `{"error": "Source and destination pincodes cannot be the same"}` |
-| Malformed or missing JSON body | 400 | `{"error": "Request body must be JSON with sourcePincode and destinationPincode"}` |
-| No drivable route | 422 | `{"error": "No drivable route found between the given pincodes"}` |
-| ORS / geocoder rate limit reached | 429 | `{"error": "... rate limit reached, please try again later"}` |
-| ORS / geocoder failed or rejected the key | 502 | `{"error": "..."}` |
-| ORS / geocoder timed out | 504 | `{"error": "... timed out, please try again"}` |
-| ORS / geocoder unreachable | 503 | `{"error": "... is unreachable, please try again later"}` |
-| Anything unexpected | 500 | `{"error": "Something went wrong, please try again later"}` (details only in the server log) |
+If a route has no toll plazas, the API still returns a successful response with an empty `tollPlazas` array.
 
-## Run locally
+## Error Handling
 
-You need a JDK 17+ and an OpenRouteService API key (free at openrouteservice.org).
+The API handles common errors and returns appropriate HTTP status codes.
 
-Put the key in a `.env` file in the project root (`ORS_API_KEY=your-key`, see `.env.example`; it is git-ignored and
-read automatically), or export it:
+| Scenario | Status Code | Response |
+|---|---:|---|
+| Invalid or unrecognized pincode | 400 | Invalid source or destination pincode |
+| Source and destination are the same | 400 | Source and destination pincodes cannot be the same |
+| Missing or invalid request body | 400 | Request body must contain valid JSON and both pincodes |
+| No drivable route found | 422 | No drivable route found between the given pincodes |
+| API rate limit exceeded | 429 | Rate limit reached, please try again later |
+| External API failure | 502 | External service failed or rejected the API key |
+| External API timeout | 504 | Request timed out, please try again |
+| External service unavailable | 503 | Service is currently unreachable |
+| Unexpected server error | 500 | Something went wrong, please try again later |
 
-```bash
-export ORS_API_KEY=your-key            # PowerShell: $env:ORS_API_KEY="your-key"
-./mvnw spring-boot:run                 # Windows: mvnw.cmd spring-boot:run
+## Getting Started
+
+### Prerequisites
+
+Before running the project, make sure you have:
+
+- JDK 17 or later
+- An OpenRouteService API key
+
+You can get a free API key from [OpenRouteService](https://openrouteservice.org).
+
+### Configuration
+
+Create a `.env` file in the project root and add your API key:
+
+```env
+ORS_API_KEY=your-key
 ```
 
-Then open http://localhost:8080/swagger-ui.html or:
+You can also set it directly in your terminal.
+
+**Windows PowerShell:**
+
+```powershell
+$env:ORS_API_KEY="your-key"
+```
+
+**Run the application:**
+
+```powershell
+mvnw.cmd spring-boot:run
+```
+
+On Linux or macOS:
+
+```bash
+./mvnw spring-boot:run
+```
+
+Once the application starts, Swagger UI is available at:
+
+`http://localhost:8080/swagger-ui.html`
+
+### Test the API
+
+You can test the endpoint using Postman or cURL.
 
 ```bash
 curl -X POST http://localhost:8080/api/v1/toll-plazas \
@@ -62,92 +122,106 @@ curl -X POST http://localhost:8080/api/v1/toll-plazas \
   -d '{"sourcePincode":"560064","destinationPincode":"411045"}'
 ```
 
-Locally the app uses an in-memory H2 database and loads `src/main/resources/toll_plaza_india.csv` at startup.
-No database setup is needed. In Postman: POST, body type raw / JSON, same payload.
+The application uses an in-memory H2 database locally and automatically loads toll plaza data from `toll_plaza_india.csv` during startup. No additional database setup is required.
 
-## Run with Docker
+## Running with Docker
+
+Build the Docker image:
 
 ```bash
 docker build -t toll-plaza-finder .
+```
+
+Run the container:
+
+```bash
 docker run -p 8080:8080 -e ORS_API_KEY=your-key toll-plaza-finder
 ```
 
-## Run the tests
+## Running Tests
+
+Run the test suite using Maven:
 
 ```bash
-./mvnw test
+mvnw.cmd test
 ```
 
-No test calls a real external API: ORS and the geocoder are mocked (`MockRestServiceServer`, Mockito, `@MockitoBean`).
+The tests don't depend on real external API calls. OpenRouteService and geocoding requests are mocked, allowing the tests to run without an API key or external network access.
 
-## Configuration
+## Environment Variables
 
-| Variable | Needed | Purpose |
+| Variable | Required | Description |
 |---|---|---|
-| `ORS_API_KEY` | yes (for routing) | OpenRouteService key, sent in the `Authorization` header. Never logged or committed. |
-| `PORT` | no (default 8080) | HTTP port. Render sets this automatically. |
-| `SPRING_PROFILES_ACTIVE` | for deployment | Set to `prod` to use Postgres. |
-| `DB_URL`, `DB_USERNAME`, `DB_PASSWORD` | with `prod` | JDBC URL and credentials, e.g. `jdbc:postgresql://<neon-host>/<db>?sslmode=require` |
-| `TOLL_MATCH_TOLERANCEMETERS` | no (default 300) | How close (metres) a plaza must be to the route line. |
-| `TOLL_MATCH_MERGEDISTANCEMETERS` | no (default 1000) | Same-name plazas closer than this along the route count as one. |
-| `GEOCODING_PROVIDER` | no (default `nominatim`) | `nominatim` or `ors` |
+| `ORS_API_KEY` | Yes | API key used for route calculation |
+| `PORT` | No | Application port (defaults to 8080) |
+| `SPRING_PROFILES_ACTIVE` | For deployment | Set to `prod` to enable PostgreSQL |
+| `DB_URL` | Production | PostgreSQL connection URL |
+| `DB_USERNAME` | Production | Database username |
+| `DB_PASSWORD` | Production | Database password |
+| `TOLL_MATCH_TOLERANCEMETERS` | No | Maximum distance from the route to match a toll plaza (default: 300 m) |
+| `TOLL_MATCH_MERGEDISTANCEMETERS` | No | Distance used to merge duplicate toll plaza entries (default: 1000 m) |
+| `GEOCODING_PROVIDER` | No | Geocoding provider: `nominatim` or `ors` (default: `nominatim`) |
 
-The ORS base URLs (`ors.directions-base-url`, `ors.geocoding-base-url`) are properties in `application.yml`, no trailing slash.
-See `.env.example` for placeholders.
+The ORS routing and geocoding base URLs are configured in `application.yml`. See `.env.example` for the available configuration placeholders.
 
-## Deploying (Render + Neon)
+## Deployment
 
-1. Create a Neon Postgres database and copy its host, database name, user and password.
-2. On Render create a **Web Service** from this GitHub repo, runtime **Docker**.
-3. Set the environment variables: `ORS_API_KEY`, `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
-4. Deploy. Swagger is at `https://<your-service>.onrender.com/swagger-ui.html`.
+The application can be deployed using Render and Neon PostgreSQL.
 
-The bare URL `/` redirects to Swagger, and `GET /health` returns `{"status":"UP"}` to check the service is awake.
+### Deployment Steps
 
-On Render the app pings its own `/health` every 10 minutes (it uses the `RENDER_EXTERNAL_URL` variable Render sets
-automatically), which keeps the free instance from going idle. This uses about 744 of the 750 free instance hours per
-month, so it suits one free service per account. `/health` does not touch the database, so Neon may still pause its
-own compute; the first real request after a pause takes about a second longer.
+1. Create a PostgreSQL database on Neon.
+2. Create a Web Service on Render using this GitHub repository and select Docker as the runtime.
+3. Add the required environment variables to Render: `ORS_API_KEY`, `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, and `DB_PASSWORD`.
+4. Deploy the application.
 
-The Render free tier **sleeps after about 15 minutes idle**, so without the keep-alive above, the first request after a pause can take 30-60 seconds
-while the app starts and reloads the CSV (a quick upsert). The in-memory cache is also empty after a wake-up.
+Once deployed, Swagger UI will be available at:
 
-## How it works
+`https://your-service.onrender.com/swagger-ui.html`
 
-1. The request is validated (6 digits, not starting with 0). Same source and destination is rejected.
-2. Each pincode is turned into coordinates by a `GeocodingClient` (cached per pincode).
-3. A `RoutingClient` (ORS) returns the route geometry and its total distance.
-4. A bounding box around the route narrows the candidate plazas with one database query.
-5. `TollMatcher` keeps plazas within the tolerance of the route line, computes each one's distance along the route,
-   sorts by it and merges duplicates.
-6. The final result is cached per `source-destination` pair.
+The root URL (`/`) redirects to Swagger UI, and the `/health` endpoint returns:
 
-More detail, in plain language, is in [docs/EXPLAINER.md](docs/EXPLAINER.md).
+```json
+{
+  "status": "UP"
+}
+```
 
-## Design decisions
+This health endpoint can be used to check whether the service is running.
 
-- **Interfaces for external services** (`GeocodingClient`, `RoutingClient`): the provider can be swapped and the
-  business logic is tested with mocks.
-- **Plaza location is the key, not the name.** The CSV has repeated names at different places, missing names and
-  many exact duplicate rows. The table has a unique constraint on (latitude, longitude) and the loader upserts, so
-  it is safe to run on every start.
-- **Along-route distance.** `distanceFromSource` is measured along the route to the nearest point, not in a straight line.
-- **Merging.** The data often lists both carriageways of a plaza. Same name and within 1 km along the route are reported once.
-- **Two caches.** Pincode to coordinate (`pincodes`) and final result per pair (`tollRoutes`). Directions are not
-  symmetric, so A to B and B to A are cached separately. Entries expire after 24 h, max 1000 each.
-- **One error handler** (`@RestControllerAdvice`) so every error has the same `{"error": ...}` shape.
-- **Geocoding provider.** Nominatim resolves Indian pincodes reliably and needs no key, so it is the default. An ORS
-  (Pelias) implementation exists behind `GEOCODING_PROVIDER=ors`, but its postal-code coverage for India was not verified.
+Render's free tier may spin down the application after around 15 minutes of inactivity. The first request after the service wakes up may take 30–60 seconds because the application needs to start and reload its toll plaza data. The cache is also empty after a restart, so the first few requests may take longer.
 
-## Known limitations
+## How It Works
 
-- **Data:** the CSV has 20 locations that carry two or three different names. Only the first name in the file is kept
-  (the others are logged as warnings at startup).
-- **Accuracy:** matching depends on plaza coordinates in the CSV being close to the road. If real tolls are missed, raise the
-  tolerance; if unrelated plazas on parallel roads appear, lower it.
-- **Coverage:** the CSV has no plazas near the last ~330 km of the Bengaluru (560064) to Pune (411045) route, so the
-  API returns 11 plazas (all in the first 520 km) even with a larger tolerance. Raising the tolerance from 300 m to
-  1500 m only added one plaza, so the gap is in the data, not the matching.
-- **Free-tier limits:** ORS allows about 2000 directions and 1000 geocoding requests per day, and the public Nominatim
-  server asks for at most one request per second. The caches keep repeat calls from using that quota.
-- The cache is in memory, per instance, and is lost on restart.
+Here's what happens when a request is received:
+
+1. The API validates both pincodes to make sure they're valid and different.
+2. The geocoding service converts the pincodes into geographical coordinates. Coordinates are cached to avoid repeated lookups.
+3. OpenRouteService calculates the driving route and returns its geometry and total distance.
+4. The route's bounding box is used to find nearby toll plazas in the database without checking every location.
+5. The toll matching logic identifies plazas close to the route, calculates their distance along the route, sorts them in order, and merges duplicate entries.
+6. The final result is cached for future requests using the source and destination pincodes.
+
+## Design Decisions
+
+- **External services are replaceable:** Geocoding and routing are handled through interfaces, making it easier to change providers and test the application without relying on live APIs.
+- **Coordinates identify toll plazas:** Toll plaza names aren't always reliable because the dataset contains duplicate names, missing names, and multiple entries for the same location. Latitude and longitude are used to identify unique locations.
+- **Distance follows the route:** The distance from the source is calculated along the driving route, not as a straight-line distance.
+- **Duplicate plazas are merged:** Entries representing the same toll plaza, including those on different carriageways, are merged when they have the same name and are within the configured distance.
+- **Separate caching for geocoding and routes:** Pincode coordinates and route results are cached independently. Routes are directional, so A → B and B → A are stored separately.
+- **Consistent error responses:** A centralized exception handler ensures errors follow the same response format throughout the API.
+- **Flexible geocoding:** Nominatim is the default provider because it doesn't require an API key. ORS geocoding is also supported, although Indian postal-code coverage hasn't been fully verified.
+
+Both caches expire after 24 hours and can store up to 1,000 entries.
+
+## Known Limitations
+
+- **Dataset inconsistencies:** Some toll plaza locations have multiple names. Currently, only the first name is retained, while additional names are logged as warnings.
+- **Matching accuracy:** Toll detection depends on the accuracy of the coordinates in the CSV file. Plazas located too far from the road may be missed, while plazas near parallel roads may be incorrectly included.
+- **Incomplete coverage:** The current dataset doesn't include toll plazas for the last approximately 330 km of the Bengaluru (560064) to Pune (411045) route. As a result, the API returns 11 toll plazas, all within the first 520 km. Increasing the matching tolerance from 300 m to 1,500 m only added one plaza, indicating that the missing locations are primarily a data coverage issue.
+- **External API limits:** OpenRouteService and Nominatim have request limits. ORS allows approximately 2,000 routing requests and 1,000 geocoding requests per day, while public Nominatim usage is limited to one request per second. Caching helps reduce unnecessary requests.
+- **Cache persistence:** The caches are stored in memory and are cleared whenever the application restarts.
+
+## Further Documentation
+
+For a more detailed explanation of the project and its implementation, see [`docs/EXPLAINER.md`](docs/EXPLAINER.md).
