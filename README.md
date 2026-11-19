@@ -46,6 +46,9 @@ Success (distances are in km):
 
 You need a JDK 17+ and an OpenRouteService API key (free at openrouteservice.org).
 
+Put the key in a `.env` file in the project root (`ORS_API_KEY=your-key`, see `.env.example`; it is git-ignored and
+read automatically), or export it:
+
 ```bash
 export ORS_API_KEY=your-key            # PowerShell: $env:ORS_API_KEY="your-key"
 ./mvnw spring-boot:run                 # Windows: mvnw.cmd spring-boot:run

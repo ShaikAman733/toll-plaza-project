@@ -2,6 +2,8 @@ server:
   port: ${PORT:8080}
 
 spring:
+  config:
+    import: optional:file:./.env[.properties]   # local convenience: picks up ORS_API_KEY from .env if present
   datasource:
     url: jdbc:h2:mem:tolls;DB_CLOSE_DELAY=-1
     username: sa
