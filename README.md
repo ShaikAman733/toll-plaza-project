@@ -102,6 +102,8 @@ See `.env.example` for placeholders.
 3. Set the environment variables: `ORS_API_KEY`, `SPRING_PROFILES_ACTIVE=prod`, `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 4. Deploy. Swagger is at `https://<your-service>.onrender.com/swagger-ui.html`.
 
+The bare URL `/` redirects to Swagger, and `GET /health` returns `{"status":"UP"}` to check the service is awake.
+
 The Render free tier **sleeps after about 15 minutes idle**, so the first request after a pause can take 30-60 seconds
 while the app starts and reloads the CSV (a quick upsert). The in-memory cache is also empty after a wake-up.
 
