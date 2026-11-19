@@ -1,0 +1,37 @@
+server:
+  port: ${PORT:8080}
+
+spring:
+  datasource:
+    url: jdbc:h2:mem:tolls;DB_CLOSE_DELAY=-1
+    username: sa
+    password: ""
+  jpa:
+    hibernate.ddl-auto: update
+    open-in-view: false
+  cache:
+    type: caffeine
+    cache-names: pincodes,tollRoutes
+    caffeine.spec: maximumSize=1000,expireAfterWrite=24h
+
+toll:
+  csv-path: classpath:toll_plaza_india.csv
+  load-on-startup: true
+  match:
+    tolerance-meters: 300        # max distance between a plaza and the route line
+    merge-distance-meters: 1000  # same-name plazas closer than this along the route count as one
+
+geocoding:
+  provider: nominatim            # nominatim | ors
+
+ors:
+  directions-base-url: https://api.heigit.org/openrouteservice
+  geocoding-base-url: https://api.heigit.org/pelias/v1
+  api-key: ${ORS_API_KEY:}
+  timeout-seconds: 10
+
+nominatim:
+  base-url: https://nominatim.openstreetmap.org
+
+springdoc:
+  swagger-ui.path: /swagger-ui.html
