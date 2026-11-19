@@ -135,6 +135,9 @@ More detail, in plain language, is in [docs/EXPLAINER.md](docs/EXPLAINER.md).
   (the others are logged as warnings at startup).
 - **Accuracy:** matching depends on plaza coordinates in the CSV being close to the road. If real tolls are missed, raise the
   tolerance; if unrelated plazas on parallel roads appear, lower it.
+- **Coverage:** the CSV has no plazas near the last ~330 km of the Bengaluru (560064) to Pune (411045) route, so the
+  API returns 11 plazas (all in the first 520 km) even with a larger tolerance. Raising the tolerance from 300 m to
+  1500 m only added one plaza, so the gap is in the data, not the matching.
 - **Free-tier limits:** ORS allows about 2000 directions and 1000 geocoding requests per day, and the public Nominatim
   server asks for at most one request per second. The caches keep repeat calls from using that quota.
 - The cache is in memory, per instance, and is lost on restart.
