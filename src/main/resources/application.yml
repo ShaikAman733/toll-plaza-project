@@ -1,5 +1,7 @@
 server:
   port: ${PORT:8080}
+  # behind Render's HTTPS proxy: trust X-Forwarded-* so Swagger builds https URLs, not http://localhost
+  forward-headers-strategy: framework
 
 spring:
   config:

@@ -26,6 +26,17 @@ class SwaggerTest {
     }
 
     @Test
+    void behindAProxyTheDocumentUsesThePublicHttpsUrlNotLocalhost() throws Exception {
+        // Render terminates HTTPS and forwards these headers
+        mvc.perform(get("/v3/api-docs")
+                        .header("X-Forwarded-Proto", "https")
+                        .header("X-Forwarded-Host", "toll-plaza-finder.onrender.com")
+                        .header("X-Forwarded-Port", "443"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.servers[0].url").value("https://toll-plaza-finder.onrender.com"));
+    }
+
+    @Test
     void swaggerUiIsServed() throws Exception {
         mvc.perform(get("/swagger-ui/index.html")).andExpect(status().isOk());
     }
