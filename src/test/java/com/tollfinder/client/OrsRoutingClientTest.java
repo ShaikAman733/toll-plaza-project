@@ -82,6 +82,17 @@ class OrsRoutingClientTest {
     }
 
     @Test
+    void rejectedKeyGivesAHintToCheckTheKeySetting() {
+        server.expect(requestTo(URL)).andRespond(withUnauthorizedRequest());
+
+        assertThatThrownBy(() -> client.route(FROM, TO))
+                .isInstanceOfSatisfying(ExternalServiceException.class, e -> {
+                    assertThat(e.getStatus()).isEqualTo(HttpStatus.BAD_GATEWAY);
+                    assertThat(e.getMessage()).contains("ORS_API_KEY").doesNotContain("secret-key");
+                });
+    }
+
+    @Test
     void timeoutMapsTo504() {
         server.expect(requestTo(URL)).andRespond(withException(new SocketTimeoutException("read timed out")));
 

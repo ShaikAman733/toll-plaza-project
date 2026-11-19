@@ -35,6 +35,10 @@ final class ExternalCalls {
             return new ExternalServiceException(HttpStatus.TOO_MANY_REQUESTS,
                     provider + " rate limit reached, please try again later");
         }
+        if (e.getStatusCode().value() == 401 || e.getStatusCode().value() == 403) {
+            return new ExternalServiceException(HttpStatus.BAD_GATEWAY,
+                    provider + " rejected our credentials, check that ORS_API_KEY is set and valid");
+        }
         return new ExternalServiceException(HttpStatus.BAD_GATEWAY,
                 provider + " returned an error (HTTP " + e.getStatusCode().value() + ")");
     }
